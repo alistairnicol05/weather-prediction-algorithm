@@ -130,6 +130,7 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     feature_cols = [
         "T_lag1", "T_lag2", "T_lag3",
+        "Prec",
         "sin_day", "cos_day",
         "sin_year", "cos_year",
     ]
