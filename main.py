@@ -141,7 +141,6 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     return X, y
 
-
 if __name__ == "__main__":
     start_date = "2026-01-01"
     end_date = "2026-03-07"
