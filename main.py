@@ -141,9 +141,17 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     return X, y
 
+
+def model_training(X_train: np.array, y_train: np.array):
+
+    theta = np.linalg.lstsq(X_train, y_train, rcond=None)
+
+    return theta
+    
+
 if __name__ == "__main__":
-    start_date = "2026-01-01"
-    end_date = "2026-03-07"
+    start_date = "2025-01-01"
+    end_date = "2025-03-07"
     
     montreal = Location(
         name="Montreal, QC",
@@ -163,3 +171,5 @@ if __name__ == "__main__":
     plt.ylabel("T [°C]")
     plt.tight_layout()
     plt.show()
+    
+
