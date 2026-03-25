@@ -215,6 +215,7 @@ if __name__ == "__main__":
     df_train, df_val = split_train_val(df, val_hours)
 
     horizons = [1, 3, 6, 12, 24, 48]
+    results = []
 
     for horizon in horizons:
 
@@ -231,5 +232,16 @@ if __name__ == "__main__":
         print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
 
         plot_forecast(y_val, y_pred, horizon) # y_baseline
+
+        results.append({
+        "Model": "Model 1",
+        "Date Range": f"{start_date} to {end_date}",
+        "Horizon (h)": horizon,
+        "RMSE": rmse_model,
+        "MAE": mae_model,
+        })
+
+    metric_results = pd.DataFrame(results)
+    metric_results.to_excel("Model.xlsx", index = False)
 
         
