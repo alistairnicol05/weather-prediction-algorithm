@@ -9,6 +9,8 @@ import pandas as pd
 import requests 
 import matplotlib.pyplot as plt
 
+import os # to organise files
+
 @dataclass(frozen=True)
 class Location:
     name: str
@@ -122,17 +124,18 @@ def split_train_val(data: pd.DataFrame, val_hours: int) -> Tuple[pd.DataFrame, p
 
 def design_matrix(df: pd.DataFrame, horizon: int):
 
-    data = df.copy
+    data = df.copy()
 
     data = add_lags(data, "T", [1, 2, 3])
 
     feature_cols = [
-        "T_1h", "T_2h", "T_3h",
+        "T_lag1", "T_lag2", "T_lag3",
         "sin_day", "cos_day",
         "sin_year", "cos_year",
     ]
 
     data["y_target"] = data["T"].shift(-horizon)
+    data = data.dropna(subset=feature_cols + ["y_target"])
 
     X = data[feature_cols].to_numpy()
     y = data["y_target"].to_numpy()
@@ -144,9 +147,52 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
 def model_training(X_train: np.array, y_train: np.array):
 
-    theta = np.linalg.lstsq(X_train, y_train, rcond=None)
+    theta, residuals, rank, sv = np.linalg.lstsq(X_train, y_train, rcond=None)
 
     return theta
+
+def prediction(X: np.array, theta: np.array):
+
+    return X @ theta
+
+""" Baseline prediction
+
+def baseline(X_val: np.array):
+
+    return X_val[:,1]
+
+"""
+def metric_computation(y_pred: np.array, y_true: np.array):
+
+    error = y_pred - y_true
+    RMSE = np.sqrt(np.mean(error**2))
+    MAE = np.mean(np.abs(error))
+
+    return RMSE, MAE
+
+def plot_forecast(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    # y_baseline: np.ndarray,
+    horizon: int,
+):
+    
+
+    plt.figure(figsize=(12, 4))
+    plt.plot(y_true,     label="Observed",  linewidth=1.0)
+    plt.plot(y_pred,     label="Predicted", linewidth=1.0, alpha=0.8)
+    # plt.plot(y_baseline, label="Baseline",  linewidth=0.8, linestyle="--", alpha=0.6)
+    plt.title(f"Temperature forecast — {horizon}h ahead (validation set)")
+    plt.ylabel("T [°C]")
+    plt.xlabel("Hour index (validation period)")
+    plt.legend()
+    plt.tight_layout()
+    folder = f"figures/{start_date}_to_{end_date}"
+    os.makedirs(folder, exist_ok=True)
+    plt.savefig(f"{folder}/forecast_{horizon}h.png")
+    plt.close()
+
+    print(f"  Saved figures/forecast_{horizon}h.png")
     
 
 if __name__ == "__main__":
@@ -165,11 +211,25 @@ if __name__ == "__main__":
     print("Preprocessing...")
     df = preprocess(df_raw)
 
-    plt.figure()
-    df["T"].plot(linewidth=1)
-    plt.title("Montreal hourly temperature (2m)")
-    plt.ylabel("T [°C]")
-    plt.tight_layout()
-    plt.show()
-    
+    val_hours = int(len(df)*0.2)
+    df_train, df_val = split_train_val(df, val_hours)
 
+    horizons = [1, 3, 6, 12, 24, 48]
+
+    for horizon in horizons:
+
+        X_train, y_train = design_matrix(df_train, horizon)
+        X_val, y_val = design_matrix(df_val, horizon)
+
+        theta = model_training(X_train, y_train)
+        y_pred = prediction(X_val, theta)
+        #y_baseline = baseline(X_val)
+
+        rmse_model, mae_model = metric_computation(y_pred, y_val)
+        # rmse_baseline, mae_baseline = metric_computation(y_pred, y_baseline)
+
+        print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
+
+        plot_forecast(y_val, y_pred, horizon) # y_baseline
+
+        
