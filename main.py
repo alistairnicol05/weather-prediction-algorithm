@@ -105,6 +105,10 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # TODO: Student can add whatever you like to the dataset here
     df["sin_year"] = np.sin(omega_y * doy)
     df["cos_year"] = np.cos(omega_y * doy)
+    df["T_mean_24"] = df["T"].rolling(24).mean()
+    df["T_std_24"] = df["T"].rolling(24).std()
+    df["W_mean_12"] = df["W"].rolling(12).mean()
+    df["P_mean_12"] = df["P"].rolling(12).mean()
 
     return df
 
@@ -126,18 +130,41 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     data = df.copy()
 
-    data = add_lags(data, "T", [1, 3, 6, 12, 24, 48])
-    data = add_lags(data, "RH", [1, 2, 3])
+    data = add_lags(data, "T", [1, 6, 12, 24, 48])
+    data = add_lags(data, "RH", [1, 24])
+    data = add_lags(data, "W", [1, 6, 24])
 
-    feature_cols = [
-        "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-        "Wd", 
-        "RH_lag1", "RH_lag2", "RH_lag3",
-        "P", 
-        "Cloud",
-        "sin_day", "cos_day",
-        "sin_year", "cos_year",
-    ]
+    if horizon <= 6:
+
+        feature_cols = [
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+            "W_lag1", "W_lag6", "W_lag24",
+            "RH_lag1", "RH_lag24",
+            "P",
+            "Cloud",
+            "sin_day", "cos_day",
+        ]
+    
+    elif horizon <= 24:
+
+        feature_cols = [
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24",
+            "W_lag1", "W_lag6",
+            "RH_lag1",
+            "T_mean_24",
+            "sin_day", "cos_day",
+        ]
+
+    else:
+
+        feature_cols = [
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+            "W_lag1", "W_lag6", "W_lag24",
+            "RH_lag1", "RH_lag24",
+            "T_mean_24", "T_std_24",
+            "W_mean_12", "P_mean_12",
+            "Cloud"
+        ]
 
     data["y_target"] = data["T"].shift(-horizon)
     data = data.dropna(subset=feature_cols + ["y_target"])
@@ -145,14 +172,25 @@ def design_matrix(df: pd.DataFrame, horizon: int):
     X = data[feature_cols].to_numpy()
     y = data["y_target"].to_numpy()
 
-    X = np.hstack([np.ones((X.shape[0], 1)), X])
-
     return X, y
 
+def fit_standardizer(X_std: np.ndarray):
+    
+    mu = X_std.mean(axis=0)
+    sigma = X_std.std(axis=0, ddof=0)
+
+    sigma[sigma==0] = 1
+
+    return mu, sigma
+
+def apply_standardizer(X: np.ndarray, mu: np.ndarray, sigma: np.ndarray):
+    X_scaled = (X - mu) / sigma
+    X = np.hstack([np.ones((X_scaled.shape[0], 1)), X_scaled])
+    return X
 
 def model_training(X_train: np.ndarray, y_train: np.ndarray):
 
-    theta, residuals, rank, sv = np.linalg.lstsq(X_train, y_train, rcond=None)
+    theta = np.linalg.lstsq(X_train, y_train, rcond=None)[0]
 
     return theta
 
@@ -201,7 +239,7 @@ def plot_forecast(
     
 
 if __name__ == "__main__":
-    start_date = "2025-01-01"
+    start_date = "2024-01-01"
     end_date = "2025-03-07"
     
     montreal = Location(
@@ -224,19 +262,29 @@ if __name__ == "__main__":
 
     for horizon in horizons:
 
-        X_train, y_train = design_matrix(df_train, horizon)
-        X_val, y_val = design_matrix(df_val, horizon)
+        X_train_raw, y_train_raw = design_matrix(df_train, horizon)
+        X_val_raw, y_val_raw = design_matrix(df_val, horizon)
 
-        theta = model_training(X_train, y_train)
+        print("Condition number before standardizing", np.linalg.cond(X_train_raw))
+
+        mu, sigma = fit_standardizer(X_train_raw)
+
+        X_train = apply_standardizer(X_train_raw, mu, sigma)
+        X_val = apply_standardizer(X_val_raw, mu, sigma)
+
+        print("Condition number after standardizing", np.linalg.cond(X_train))
+        print("Validation condition number after standardizing", np.linalg.cond(X_val))
+
+        theta = model_training(X_train, y_train_raw)
         y_pred = prediction(X_val, theta)
         #y_baseline = baseline(X_val)
 
-        rmse_model, mae_model = metric_computation(y_pred, y_val)
+        rmse_model, mae_model = metric_computation(y_pred, y_val_raw)
         # rmse_baseline, mae_baseline = metric_computation(y_pred, y_baseline)
 
         print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
 
-        plot_forecast(y_val, y_pred, horizon) # y_baseline
+        plot_forecast(y_val_raw, y_pred, horizon) # y_baseline
 
         results.append({
         "Model": "Model 1",
@@ -249,6 +297,3 @@ if __name__ == "__main__":
     metric_results = pd.DataFrame(results)
     metric_results.to_excel("Model.xlsx", index = False)
 
-    print(np.linalg.cond(X_train))
-
-        
