@@ -126,11 +126,15 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     data = df.copy()
 
-    data = add_lags(data, "T", [1, 2, 3])
+    data = add_lags(data, "T", [1, 3, 6, 12, 24, 48])
+    data = add_lags(data, "RH", [1, 2, 3])
 
     feature_cols = [
-        "T_lag1", "T_lag2", "T_lag3",
-        "Prec",
+        "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+        "Wd", 
+        "RH_lag1", "RH_lag2", "RH_lag3",
+        "P", 
+        "Cloud",
         "sin_day", "cos_day",
         "sin_year", "cos_year",
     ]
