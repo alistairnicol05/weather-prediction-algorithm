@@ -76,7 +76,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_index()
     df = df[~df.index.duplicated(keep="first")]
 
-    full_idx = pd.date_range(df.index.min(), df.index.max(), freq="h", tz=df.index.tz)
+    full_idx = pd.date_range(df.index.min(), df.index.max(), freq="h", tz=pd.DatetimeIndex(df.index).tz)
     df = df.reindex(full_idx)
 
     df = df.interpolate(limit=6)
@@ -94,13 +94,13 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
 
     # Diurnal + seasonal features
-    hour = df.index.hour.to_numpy()
+    hour = pd.DatetimeIndex(df.index).hour.to_numpy()
     omega = 2 * math.pi / 24.0
     # TODO: Student can add whatever you like to the dataset here. Example here
     df["sin_day"] = np.sin(omega * hour)
     df["cos_day"] = np.cos(omega * hour)
 
-    doy = df.index.dayofyear.to_numpy()
+    doy = pd.DatetimeIndex(df.index).dayofyear.to_numpy()
     omega_y = 2 * math.pi / 365.25
     # TODO: Student can add whatever you like to the dataset here
     df["sin_year"] = np.sin(omega_y * doy)
@@ -150,13 +150,13 @@ def design_matrix(df: pd.DataFrame, horizon: int):
     return X, y
 
 
-def model_training(X_train: np.array, y_train: np.array):
+def model_training(X_train: np.ndarray, y_train: np.ndarray):
 
     theta, residuals, rank, sv = np.linalg.lstsq(X_train, y_train, rcond=None)
 
     return theta
 
-def prediction(X: np.array, theta: np.array):
+def prediction(X: np.ndarray, theta: np.ndarray):
 
     return X @ theta
 
@@ -167,7 +167,7 @@ def baseline(X_val: np.array):
     return X_val[:,1]
 
 """
-def metric_computation(y_pred: np.array, y_true: np.array):
+def metric_computation(y_pred: np.ndarray, y_true: np.ndarray):
 
     error = y_pred - y_true
     RMSE = np.sqrt(np.mean(error**2))
