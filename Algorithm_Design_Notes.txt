@@ -12,3 +12,5 @@ Variables:
 
 Model fits relatively well on low horizon but error amplifies significantly with scale. May need to look at condition number and how to reduce it. A folder is created to store figures based on time frame and an excel file to store RMSE and MAE values. Overall, the tested code works - shows promise. 
 
+Iteration
+
