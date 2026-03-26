@@ -249,4 +249,6 @@ if __name__ == "__main__":
     metric_results = pd.DataFrame(results)
     metric_results.to_excel("Model.xlsx", index = False)
 
+    print(np.linalg.cond(X_train))
+
         
