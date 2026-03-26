@@ -12,5 +12,37 @@ Variables:
 
 Model fits relatively well on low horizon but error amplifies significantly with scale. May need to look at condition number and how to reduce it. A folder is created to store figures based on time frame and an excel file to store RMSE and MAE values. Overall, the tested code works - shows promise. 
 
-Iteration
+Iteration 2:
+
+Before thoughts:
+
+- Set cloud coverage variable to 0 at night time (XXX)
+
+def model_training(df: DataFrame, X_train: np.array, y_train: np.array):
+
+    theta, residuals, rank, sv = np.linalg.lstsq(X_train, y_train, rcond=None)
+    average = np.mean(theta[3])
+    
+    if theta[3] < average:
+        df["cloud_cover"] = 0
+  
+
+    return theta
+
+--> forget this
+
+- Temperature 12 hour lags
+- Wind direction 
+- Relative humidity 3 hour lags
+- Cloud coverage
+- Surface Pressure
+
+--> Slightly better error - still not close
+
+Iteration 3:
+
+Changing Temperature lags to the horizon values.
+
+--> Improved once again by an RMSE of ~1. Still not good
+
 
