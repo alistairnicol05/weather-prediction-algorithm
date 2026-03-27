@@ -74,7 +74,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_index()
     df = df[~df.index.duplicated(keep="first")]
 
-    full_idx = pd.date_range(df.index.min(), df.index.max(), freq="h", tz=df.index.tz)
+    full_idx = pd.date_range(df.index.min(), df.index.max(), freq="h", tz=pd.DatetimeIndex(df.index).tz)
     df = df.reindex(full_idx)
 
     df = df.interpolate(limit=6)
@@ -92,13 +92,13 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
 
     # Diurnal + seasonal features
-    hour = df.index.hour.to_numpy()
+    hour = pd.DatetimeIndex(df.index).hour.to_numpy()
     omega = 2 * math.pi / 24.0
     # TODO: Student can add whatever you like to the dataset here. Example here
     df["sin_day"] = np.sin(omega * hour)
     df["cos_day"] = np.cos(omega * hour)
 
-    doy = df.index.dayofyear.to_numpy()
+    doy = pd.DatetimeIndex(df.index).dayofyear.to_numpy()
     omega_y = 2 * math.pi / 365.25
     # TODO: Student can add whatever you like to the dataset here
 
