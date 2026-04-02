@@ -133,62 +133,58 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     data = df.copy()
 
-    data = add_lags(data, "T", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "P", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "W", [1, 2])
-    data = add_lags(data, "RH", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "Cloud", [1, 2, 3])
-    data = add_lags(data, "dP", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "dT", [1, 2, 3])
-    data = add_lags(data, "dRH", [1, 2])
+    data = add_lags(data, "T", [1, 2, 6, 12, 24, 48])
+    data = add_lags(data, "P", [1, 2, 6, 12, 24, 48])
+    data = add_lags(data, "W", [1, 2, 6, 12, 24, 48])
+    data = add_lags(data, "Wd", [1, 2, 6, 12, 24, 48])
+    data = add_lags(data, "Prec", [1, 2, 6, 12, 24, 48])
+    # data = add_lags(data, "Cloud", [1, 2, 3])
+    # data = add_lags(data, "dP", [1, 2, 3, 6, 12, 24, 48])
+    # data = add_lags(data, "dT", [1, 2, 3])
+    # data = add_lags(data, "dRH", [1, 2])
+    
 
     if horizon <= 3:
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3",
-            "dT_lag1", "dT_lag2", "dT_lag3",
-            "P_lag1", "P_lag2", "P_lag3",
-            "W_lag1", "W_lag2",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag12", "T_lag24",
+            "P_lag1", "P_lag12", "P_lag24",
+            "W_lag1", "W_lag12", "W_lag24",
+            "Wd_lag1", "Wd_lag12", "Wd_lag24",
+            "Prec_lag1", "Prec_lag12", "Prec_lag24",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
+        #    "sin_year", "cos_year",
     ]
         
     elif horizon <= 12:
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12",
-            "dT_lag1", "dT_lag2", "dT_lag3", 
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12",
-            "W_lag1", "W_lag2",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag12", "T_lag24",
+            "P_lag1", "P_lag12", "P_lag24",
+            "W_lag1", "W_lag12", "W_lag24",
+            "Wd_lag1", "Wd_lag12", "Wd_lag24",
+            "Prec_lag1", "Prec_lag12", "Prec_lag24",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
+        #    "sin_year", "cos_year",
     ]
     elif horizon <= 24:
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "dT_lag1", "dT_lag2", "dT_lag3",
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
-            "RH_lag12", "RH_lag24", "RH_lag48",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12", "dP_lag24",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag2", "T_lag12",
+            "P_lag1", "P_lag2", "P_lag12", 
+            "W_lag1", "W_lag2", "W_lag12",
+            "Wd_lag1", "Wd_lag2", "Wd_lag12",
+            "Prec_lag1", "Prec_lag2", "Prec_lag12",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
+        #    "sin_year", "cos_year",
         ]
    
     else:
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
-            "RH_lag12", "RH_lag24", "RH_lag48",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12", "dP_lag24", "dP_lag48",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag2", "T_lag48",
+            "P_lag1", "P_lag2", "P_lag48", 
+            "W_lag1", "W_lag2", "W_lag48",
+            "Wd_lag1", "Wd_lag2", "Wd_lag48",
+            "Prec_lag1", "Prec_lag2", "Prec_lag48",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
+       #     "sin_year", "cos_year",
         ]
     data["y_target"] = data["T"].shift(-horizon)
     data = data.dropna(subset=feature_cols + ["y_target"])
@@ -270,7 +266,135 @@ def plot_forecast(
 
     print(f"  Saved figures/forecast_{horizon}h.png")
 
+def plot_T_lag_combinations(df_train, df_val, horizons, alphas):
     
+    # Define the T lag combinations you want to test
+    T_lag_combinations = {
+        "T[1,2,3]":   [1, 2, 3],
+        "T[1,2,6]":   [1, 2, 6],
+        "T[1,2,12]":  [1, 2, 12],
+        "T[1,2,24]":  [1, 2, 24],
+        "T[1,2,48]":  [1, 2, 48],
+        "T[1,3,6]":   [1, 3, 6],
+        "T[1,3,12]":  [1, 3, 12],
+        "T[1,3,24]":  [1, 3, 24],
+        "T[1,3,48]":  [1, 3, 48],
+        "T[1,6,12]":  [1, 6, 12],
+        "T[1,6,24]":  [1, 6, 24],
+        "T[1,6,48]":  [1, 6, 48],
+        "T[1,12,24]": [1, 12, 24],
+        "T[1,12,48]": [1, 12, 48],
+        "T[1,24,48]": [1, 24, 48],
+        "T[2,3,6]":   [2, 3, 6],
+        "T[2,3,12]":  [2, 3, 12],
+        "T[2,3,24]":  [2, 3, 24],
+        "T[2,3,48]":  [2, 3, 48],
+        "T[2,6,12]":  [2, 6, 12],
+        "T[2,6,24]":  [2, 6, 24],
+        "T[2,6,48]":  [2, 6, 48],
+        "T[2,12,24]": [2, 12, 24],
+        "T[2,12,48]": [2, 12, 48],
+        "T[2,24,48]": [2, 24, 48],
+        "T[3,6,12]":  [3, 6, 12],
+        "T[3,6,24]":  [3, 6, 24],
+        "T[3,6,48]":  [3, 6, 48],
+        "T[3,12,24]": [3, 12, 24],
+        "T[3,12,48]": [3, 12, 48],
+        "T[3,24,48]": [3, 24, 48],
+        "T[6,12,24]": [6, 12, 24],
+        "T[6,12,48]": [6, 12, 48],
+        "T[6,24,48]": [6, 24, 48],
+        "T[12,24,48]":[12, 24, 48],
+    }
+
+    plt.figure(figsize=(12, 6))
+    
+    all_results = {}
+    for label, t_lags in T_lag_combinations.items():
+
+        rmses = []
+
+        for horizon in horizons:
+
+            data_train = df_train.copy()
+            data_val   = df_val.copy()
+
+            # Add T lags for this combination
+            data_train = add_lags(data_train, "T", t_lags)
+            data_val   = add_lags(data_val,   "T", t_lags)
+
+            # Build feature cols — only include T lags that exist in this combo
+            base_feature_cols = [
+                "dT_lag1", "dT_lag2", "dT_lag3",
+                "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
+                "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12", "dP_lag24", "dP_lag48",
+                "RH_lag12", "RH_lag24", "RH_lag48",
+                "dRH_lag1", "dRH_lag2",
+                "sin_day", "cos_day",
+                "sin_year", "cos_year",
+            ]
+            t_lag_cols    = [f"T_lag{L}" for L in t_lags]
+            feature_cols  = t_lag_cols + base_feature_cols
+
+            # Add the other lags needed for base features
+            data_train = add_lags(data_train, "P",  [1,2,3,6,12,24,48])
+            data_train = add_lags(data_train, "dP", [1,2,3,6,12,24,48])
+            data_train = add_lags(data_train, "RH", [12,24,48])
+            data_train = add_lags(data_train, "dT", [1,2,3])
+            data_train = add_lags(data_train, "dRH",[1,2])
+
+            data_val = add_lags(data_val, "P",  [1,2,3,6,12,24,48])
+            data_val = add_lags(data_val, "dP", [1,2,3,6,12,24,48])
+            data_val = add_lags(data_val, "RH", [12,24,48])
+            data_val = add_lags(data_val, "dT", [1,2,3])
+            data_val = add_lags(data_val, "dRH",[1,2])
+
+            # Build y target
+            data_train["y_target"] = data_train["T"].shift(-horizon)
+            data_val["y_target"]   = data_val["T"].shift(-horizon)
+
+            data_train = data_train.dropna(subset=feature_cols + ["y_target"])
+            data_val   = data_val.dropna(subset=feature_cols   + ["y_target"])
+
+            X_train_raw = data_train[feature_cols].to_numpy()
+            y_train_raw = data_train["y_target"].to_numpy()
+            X_val_raw   = data_val[feature_cols].to_numpy()
+            y_val_raw   = data_val["y_target"].to_numpy()
+
+            mu, sigma = fit_standardizer(X_train_raw)
+            X_train   = apply_standardizer(X_train_raw, mu, sigma)
+            X_val     = apply_standardizer(X_val_raw,   mu, sigma)
+
+            theta  = model_training_ridge(X_train, y_train_raw, alpha=alphas[horizon])
+            y_pred = prediction(X_val, theta)
+            rmse, _ = metric_computation(y_pred, y_val_raw)
+            rmses.append(rmse)
+        all_results[label] = rmses
+            
+
+        plt.plot(horizons, rmses, marker="o", label=label)
+
+    plt.xlabel("Horizon (h)")
+    plt.ylabel("RMSE (°C)")
+    plt.title("RMSE vs Horizon for different T lag combinations")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+    folder = f"figures/{start_date}_to_{end_date}"
+    os.makedirs(folder, exist_ok=True)
+    plt.savefig(f"{folder}/T_lag_comparison.png")
+    plt.close()
+    print("Saved figures/T_lag_comparison.png")
+
+     # Find best per horizon
+    print("\n--- Best 3-lag T combination per horizon ---\n")
+    best_per_horizon = {}
+    for i, horizon in enumerate(horizons):
+        best_label = min(all_results, key=lambda l: all_results[l][i])
+        best_per_horizon[horizon] = best_label
+        print(f"  {horizon}h → {best_label}  (RMSE={all_results[best_label][i]:.2f})")
+
 if __name__ == "__main__":
     start_date = "2024-01-01"
     end_date = "2025-03-07"
@@ -340,8 +464,10 @@ if __name__ == "__main__":
         "RMSE": rmse_model,
         "MAE": mae_model,
         })
+        print("Plotting T lag combinations...")
+        plot_T_lag_combinations(df_train, df_val, horizons, alphas)
 
-    metric_results = pd.DataFrame(results)
+        metric_results = pd.DataFrame(results)
    #  metric_results.to_excel("Model.xlsx", index = False)
 
         
