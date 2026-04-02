@@ -105,13 +105,14 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # TODO: Student can add whatever you like to the dataset here
     df["sin_year"] = np.sin(omega_y * doy)
     df["cos_year"] = np.cos(omega_y * doy)
-    df["dP"] = df["P"].diff() 
-    df["dT"] = df["T"].diff() 
-    df["dRH"] = df["RH"].diff() 
-    df["T_mean_24"] = df["T"].rolling(24).mean()
-    df["T_std_24"] = df["T"].rolling(24).std()
-    df["W_mean_12"] = df["W"].rolling(12).mean()
-    df["P_mean_12"] = df["P"].rolling(12).mean()
+
+    # df["dP"] = df["P"].diff() 
+    # df["dT"] = df["T"].diff() 
+    # df["dRH"] = df["RH"].diff() 
+    # df["T_mean_24"] = df["T"].rolling(24).mean()
+    # df["T_std_24"] = df["T"].rolling(24).std()
+    # df["W_mean_12"] = df["W"].rolling(12).mean()
+    # df["P_mean_12"] = df["P"].rolling(12).mean()
 
     return df
 
@@ -135,24 +136,42 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     data = add_lags(data, "T", [1, 2, 3, 6, 12, 24, 48])
     data = add_lags(data, "P", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "W", [1, 2])
+    data = add_lags(data, "W", [1, 2, 3, 6, 12, 24, 48])
+    data = add_lags(data, "Wd", [1, 2, 3, 6, 12, 24, 48])
     data = add_lags(data, "RH", [1, 2, 3, 6, 12, 24, 48])
+    data = add_lags(data, "Prec", [1, 2, 3, 6, 12, 24, 48])
     data = add_lags(data, "Cloud", [1, 2, 3])
-    data = add_lags(data, "dP", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "dT", [1, 2, 3])
-    data = add_lags(data, "dRH", [1, 2])
+    # data = add_lags(data, "dP", [1, 2, 3, 6, 12, 24, 48])
+    # data = add_lags(data, "dT", [1, 2, 3])
+    # data = add_lags(data, "dRH", [1, 2])
 
     if horizon <= 3:
         feature_cols = [
             "T_lag1", "T_lag3",
-            "P_lag1",
+            "P_lag1", "P_lag3",
+            "W_lag1", "W_lag3",
+            "Wd_lag48",
+            "Prec_lag1", "Prec_lag3",
             "sin_day", "cos_day",
+        ]
+
+    elif horizon <= 6:
+        feature_cols = [
+            "T_lag1", "T_lag3", "T_lag6",
+            "P_lag1", "P_lag3", "P_lag6",
+            "W_lag1", "W_lag3", "W_lag6",
+            "Wd_lag48", "Wd_lag24",
+            "Prec_lag1", "Prec_lag3", "Prec_lag6",
+            "sin_day", "cos_day",
+            "sin_year", "cos_year",
         ]
 
     elif horizon <= 12:
         feature_cols = [
             "T_lag1", "T_lag6", "T_lag12",
-            "P_lag1", "P_lag6",
+            "P_lag1", "P_lag3", "P_lag6", "P_lag12",
+            "Wd_lag48", "Wd_lag24", "Wd_lag12",
+            "RH_lag48", "RH_lag24", "RH_lag12",
             "sin_day", "cos_day",
             "sin_year", "cos_year",
         ]
@@ -160,8 +179,9 @@ def design_matrix(df: pd.DataFrame, horizon: int):
     elif horizon <= 24:
         feature_cols = [
             "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24",
-            "P_lag12", "P_lag24",
-            "RH_lag24",
+            "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
+            "Wd_lag48", "Wd_lag24", "Wd_lag12", "Wd_lag6",
+            "RH_lag48", "RH_lag24", "RH_lag12", "RH_lag6",
             "sin_day", "cos_day",
             "sin_year", "cos_year",
         ]
@@ -169,8 +189,9 @@ def design_matrix(df: pd.DataFrame, horizon: int):
     else:
         feature_cols = [
             "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
-            "RH_lag24", "RH_lag48",
+            "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
+            "Wd_lag48", "Wd_lag24", "Wd_lag12", "Wd_lag6", "Wd_lag3",
+            "RH_lag48", "RH_lag24", "RH_lag12", "RH_lag6", "RH_lag3",
             "sin_day", "cos_day",
             "sin_year", "cos_year",
         ]
@@ -204,24 +225,22 @@ def model_training(X_train: np.ndarray, y_train: np.ndarray):
 
     return theta
 
+"""
 def model_training_ridge(X_train: np.ndarray, y_train: np.ndarray, alpha=1.0):
     n_features = X_train.shape[1]
     I = np.eye(n_features)
     I[0, 0] = 0  # don't penalize the bias term
     theta = np.linalg.solve(X_train.T @ X_train + alpha * I, X_train.T @ y_train)
     return theta
-
+"""
+    
 def prediction(X: np.ndarray, theta: np.ndarray):
 
     return X @ theta
 
-""" Baseline prediction
+def baseline(X_val_raw: np.ndarray):
+    return X_val_raw[:, 0]   # column 0 of the raw matrix = T_lag1 (already in °C)
 
-def baseline(X_val: np.ndarray):
-
-    return X_val[:,1]
-
-"""
 def metric_computation(y_pred: np.ndarray, y_true: np.ndarray):
 
     error = y_pred - y_true
@@ -233,31 +252,28 @@ def metric_computation(y_pred: np.ndarray, y_true: np.ndarray):
 def plot_forecast(
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    # y_baseline: np.ndarray,
+    y_baseline: np.ndarray,
     horizon: int,
 ):
-    
+    W_DOUBLE = 7.10
+    GOLDEN   = (5**0.5 - 1) / 2
 
-    plt.figure(figsize=(12, 4))
+    plt.figure(figsize=(W_DOUBLE, W_DOUBLE*GOLDEN))
     plt.plot(y_true,     label="Observed",  linewidth=1.0)
     plt.plot(y_pred,     label="Predicted", linewidth=1.0, alpha=0.8)
-    # plt.plot(y_baseline, label="Baseline",  linewidth=0.8, linestyle="--", alpha=0.6)
+    plt.plot(y_baseline, label="Baseline",  linewidth=0.8, linestyle="--", alpha=0.6)
     plt.title(f"Temperature forecast — {horizon}h ahead (validation set)")
     plt.ylabel("T [°C]")
     plt.xlabel("Hour index (validation period)")
     plt.legend()
     plt.tight_layout()
-    folder = f"figures/{start_date}_to_{end_date}"
-    os.makedirs(folder, exist_ok=True)
-    plt.savefig(f"{folder}/forecast_{horizon}h.png")
+    plt.show()
     plt.close()
-
-    print(f"  Saved figures/forecast_{horizon}h.png")
 
     
 if __name__ == "__main__":
-    start_date = "2024-01-01"
-    end_date = "2025-03-07"
+    start_date = "2025-06-01"
+    end_date = "2025-09-01"
     
     montreal = Location(
         name="Montreal, QC",
@@ -274,13 +290,12 @@ if __name__ == "__main__":
     val_hours = int(len(df)*0.2)
     df_train, df_val = split_train_val(df, val_hours)
 
-    alphas = {1: 1, 3: 1, 6: 1, 12: 1, 24: 1000, 48: 1000}
+    # alphas = {1: 1, 3: 1, 6: 1, 12: 1, 24: 1000, 48: 1000}
     horizons = [1, 3, 6, 12, 24, 48]
     results = []
 
-    print("--- Alpha tuning ---")
-
-
+    # print("--- Alpha tuning ---")
+    """
     for horizon in horizons:
         X_train_raw, y_train_raw, _ = design_matrix(df_train, horizon)
         X_val_raw, y_val_raw, feature_cols     = design_matrix(df_val, horizon)
@@ -293,10 +308,8 @@ if __name__ == "__main__":
             y_pred = prediction(X_val, theta)
             rmse, _ = metric_computation(y_pred, y_val_raw)
             print(f"  horizon={horizon}h  alpha={alpha}: RMSE={rmse:.2f}")
-
-    from analysis import (plot_metrics_vs_horizon, 
-                          plot_residuals, 
-                            )
+        """
+    from analysis import plot_metrics_vs_horizon, plot_residuals
 
     feature_cols_dict = {}
     y_true_dict      = {}
@@ -317,16 +330,16 @@ if __name__ == "__main__":
         print("Condition number after standardizing", np.linalg.cond(X_train))
         print("Validation condition number after standardizing", np.linalg.cond(X_val))
 
-        theta = model_training_ridge(X_train, y_train_raw, alpha=alphas[horizon])
+        theta = model_training(X_train, y_train_raw)
         y_pred = prediction(X_val, theta)
-        #y_baseline = baseline(X_val)
+        y_baseline = baseline(X_val_raw)
 
         rmse_model, mae_model = metric_computation(y_pred, y_val_raw)
-        # rmse_baseline, mae_baseline = metric_computation(y_pred, y_baseline)
+        rmse_baseline, mae_baseline = metric_computation(y_pred, y_baseline)
 
-        print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
+        print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}, baseline RMSE={rmse_baseline:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
 
-        plot_forecast(y_val_raw, y_pred, horizon) # y_baseline
+        plot_forecast(y_val_raw, y_pred, y_baseline, horizon) # y_baseline
 
         results.append({
         "Model": "Model 1",
@@ -342,7 +355,7 @@ if __name__ == "__main__":
 
     metric_results = pd.DataFrame(results)
 
-    # plot_metrics_vs_horizon(results)
-    # plot_residuals(y_true_dict, y_pred_dict)
-    # metric_results.to_excel("Model.xlsx", index = False)from __future__ import annotations
+    plot_metrics_vs_horizon(results)
+    plot_residuals(y_true_dict, y_pred_dict)
+    # metric_results.to_excel("Model.xlsx", index = False) 
 
