@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import math
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -105,9 +103,6 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     # TODO: Student can add whatever you like to the dataset here
     df["sin_year"] = np.sin(omega_y * doy)
     df["cos_year"] = np.cos(omega_y * doy)
-    df["dP"] = df["P"].diff() 
-    df["dT"] = df["T"].diff() 
-    df["dRH"] = df["RH"].diff() 
     df["T_mean_24"] = df["T"].rolling(24).mean()
     df["T_std_24"] = df["T"].rolling(24).std()
     df["W_mean_12"] = df["W"].rolling(12).mean()
@@ -133,70 +128,47 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     data = df.copy()
 
-    data = add_lags(data, "T", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "P", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "W", [1, 2])
-    data = add_lags(data, "RH", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "Cloud", [1, 2, 3])
-    data = add_lags(data, "dP", [1, 2, 3, 6, 12, 24, 48])
-    data = add_lags(data, "dT", [1, 2, 3])
-    data = add_lags(data, "dRH", [1, 2])
+    data = add_lags(data, "T", [1, 6, 12, 24, 48])
+    data = add_lags(data, "RH", [1, 24])
+    data = add_lags(data, "W", [1, 6, 24])
 
-    if horizon <= 3:
+    if horizon <= 6:
+
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3",
-            "dT_lag1", "dT_lag2", "dT_lag3",
-            "P_lag1", "P_lag2", "P_lag3",
-            "W_lag1", "W_lag2",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+            "W_lag1", "W_lag6", "W_lag24",
+            "RH_lag1", "RH_lag24",
+            "P",
+            "Cloud",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
-    ]
-        
-    elif horizon <= 12:
-        feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12",
-            "dT_lag1", "dT_lag2", "dT_lag3", 
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12",
-            "W_lag1", "W_lag2",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12",
-            "dRH_lag1", "dRH_lag2",
-            "sin_day", "cos_day",
-            "sin_year", "cos_year",
-    ]
+        ]
+    
     elif horizon <= 24:
+
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "dT_lag1", "dT_lag2", "dT_lag3",
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
-            "RH_lag12", "RH_lag24", "RH_lag48",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12", "dP_lag24",
-            "dRH_lag1", "dRH_lag2",
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24",
+            "W_lag1", "W_lag6",
+            "RH_lag1",
+            "T_mean_24",
             "sin_day", "cos_day",
-            "sin_year", "cos_year",
         ]
-   
+
     else:
+
         feature_cols = [
-            "T_lag1", "T_lag2", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "P_lag1", "P_lag2", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
-            "RH_lag12", "RH_lag24", "RH_lag48",
-            "Cloud_lag1", "Cloud_lag2", "Cloud_lag3",
-            "dP_lag1", "dP_lag2", "dP_lag3", "dP_lag6", "dP_lag12", "dP_lag24", "dP_lag48",
-            "dRH_lag1", "dRH_lag2",
-            "sin_day", "cos_day",
-            "sin_year", "cos_year",
+            "T_lag1", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+            "W_lag1", "W_lag6", "W_lag24",
+            "RH_lag1", "RH_lag24",
+            "T_mean_24", "T_std_24",
+            "W_mean_12", "P_mean_12",
+            "Cloud"
         ]
+
     data["y_target"] = data["T"].shift(-horizon)
     data = data.dropna(subset=feature_cols + ["y_target"])
 
     X = data[feature_cols].to_numpy()
     y = data["y_target"].to_numpy()
-
-  #  X = np.hstack([np.ones((X.shape[0], 1)), X])
 
     return X, y
 
@@ -220,20 +192,13 @@ def model_training(X_train: np.ndarray, y_train: np.ndarray):
 
     return theta
 
-def model_training_ridge(X_train: np.ndarray, y_train: np.ndarray, alpha=1.0):
-    n_features = X_train.shape[1]
-    I = np.eye(n_features)
-    I[0, 0] = 0  # don't penalize the bias term
-    theta = np.linalg.solve(X_train.T @ X_train + alpha * I, X_train.T @ y_train)
-    return theta
-
 def prediction(X: np.ndarray, theta: np.ndarray):
 
     return X @ theta
 
 """ Baseline prediction
 
-def baseline(X_val: np.ndarray):
+def baseline(X_val: np.array):
 
     return X_val[:,1]
 
@@ -269,8 +234,8 @@ def plot_forecast(
     plt.close()
 
     print(f"  Saved figures/forecast_{horizon}h.png")
-
     
+
 if __name__ == "__main__":
     start_date = "2024-01-01"
     end_date = "2025-03-07"
@@ -290,23 +255,9 @@ if __name__ == "__main__":
     val_hours = int(len(df)*0.2)
     df_train, df_val = split_train_val(df, val_hours)
 
-    alphas = {1: 1, 3: 1, 6: 1, 12: 1, 24: 1000, 48: 1000}
     horizons = [1, 3, 6, 12, 24, 48]
     results = []
-    print("--- Alpha tuning ---")
 
-    for horizon in horizons:
-        X_train_raw, y_train_raw = design_matrix(df_train, horizon)
-        X_val_raw, y_val_raw     = design_matrix(df_val, horizon)
-        mu, sigma   = fit_standardizer(X_train_raw)
-        X_train     = apply_standardizer(X_train_raw, mu, sigma)
-        X_val       = apply_standardizer(X_val_raw, mu, sigma)
-        
-        for alpha in [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]:
-            theta  = model_training_ridge(X_train, y_train_raw, alpha=alpha)
-            y_pred = prediction(X_val, theta)
-            rmse, _ = metric_computation(y_pred, y_val_raw)
-            print(f"  horizon={horizon}h  alpha={alpha}: RMSE={rmse:.2f}")
     for horizon in horizons:
 
         X_train_raw, y_train_raw = design_matrix(df_train, horizon)
@@ -322,7 +273,7 @@ if __name__ == "__main__":
         print("Condition number after standardizing", np.linalg.cond(X_train))
         print("Validation condition number after standardizing", np.linalg.cond(X_val))
 
-        theta = model_training_ridge(X_train, y_train_raw, alpha=alphas[horizon])
+        theta = model_training(X_train, y_train_raw)
         y_pred = prediction(X_val, theta)
         #y_baseline = baseline(X_val)
 
@@ -342,6 +293,7 @@ if __name__ == "__main__":
         })
 
     metric_results = pd.DataFrame(results)
-   #  metric_results.to_excel("Model.xlsx", index = False)
+    metric_results.to_excel("Model.xlsx", index = False)
 
-        
+
+
