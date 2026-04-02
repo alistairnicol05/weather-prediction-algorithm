@@ -200,7 +200,7 @@ def prediction(X: np.ndarray, theta: np.ndarray):
 
 """ Baseline prediction
 
-def baseline(X_val: np.array):
+def baseline(X_val: np.ndarray):
 
     return X_val[:,1]
 
