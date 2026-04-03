@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 
 # Report figure dimensions (from template)
 GOLDEN   = (5**0.5 - 1) / 2   # ≈ 0.618
-W_SINGLE = 3.45                # inches
-W_DOUBLE = 7.10                # inches
+W_SINGLE = 3.45 # inches
+W_DOUBLE = 7.10 # inches
 
-def _show_fig(fig, column="double"):
+def _show_fig(fig, column="double"): # helper function to display figures with appropriate dimensions for single or double column format
     """Resize figure to report dimensions and display it."""
     w = W_SINGLE if column == "single" else W_DOUBLE
     old_w, old_h = fig.get_size_inches()
@@ -18,19 +18,19 @@ def _show_fig(fig, column="double"):
     plt.close(fig)
 
 
-def plot_metrics_vs_horizon(results, out_dir="figures/analysis"):
+def plot_metrics_vs_horizon(results, out_dir="figures/analysis"): # plot RMSE and MAE against forecast horizon using the results collected in the main loop
     """
     Two-panel plot: RMSE and MAE against forecast horizon.
     `results` is the list of dicts you already build in the main loop.
     """
-    df       = pd.DataFrame(results)
+    df = pd.DataFrame(results)
     horizons = df["Horizon (h)"].values
-    rmses    = df["RMSE"].values
-    maes     = df["MAE"].values
+    rmses = df["RMSE"].values
+    maes = df["MAE"].values
 
     fig, axes = plt.subplots(1, 2, figsize=(W_DOUBLE, W_DOUBLE * GOLDEN / 2))
 
-    for ax, label, vals in zip(axes, ["RMSE", "MAE"], [rmses, maes]):
+    for ax, label, vals in zip(axes, ["RMSE", "MAE"], [rmses, maes]): # plot RMSE and MAE vs horizon in separate subplots, with markers and annotations for each point
         ax.plot(horizons, vals, marker="o")
         for h, v in zip(horizons, vals):
             ax.annotate(f"{v:.2f}", (h, v), textcoords="offset points",
@@ -44,9 +44,9 @@ def plot_metrics_vs_horizon(results, out_dir="figures/analysis"):
     _show_fig(fig)
 
 
-def plot_residuals(y_true_dict, y_pred_dict, out_dir="figures/analysis"):
+def plot_residuals(y_true_dict, y_pred_dict, out_dir="figures/analysis"): # for each forecast horizon, plot predicted vs observed values and the distribution of residuals (errors)
     
-    for h in sorted(y_true_dict):
+    for h in sorted(y_true_dict): 
         y_true = y_true_dict[h]
         y_pred = y_pred_dict[h]
         resid  = y_pred - y_true
@@ -70,7 +70,7 @@ def plot_residuals(y_true_dict, y_pred_dict, out_dir="figures/analysis"):
         # Residual histogram
         ax=axes[1]
         ax.hist(resid, bins=60)
-        ax.axvline(0,            color="r", linewidth=0.8, linestyle="--", label="zero")
+        ax.axvline(0, color="r", linewidth=0.8, linestyle="--", label="zero")
         ax.axvline(resid.mean(), color="k", linewidth=0.8,
                    label=f"mean = {resid.mean():.2f}")
         ax.set_xlabel("Residual (°C)"); ax.set_ylabel("Count")
@@ -84,7 +84,7 @@ def plot_residuals(y_true_dict, y_pred_dict, out_dir="figures/analysis"):
         
         
 
-def plot_horizon_comparison(
+def plot_horizon_comparison( # plot predicted vs observed values on the same plot, with baseline
     y_true_dict: dict,
     y_pred_dict: dict,
     y_baseline_dict: dict,
@@ -99,14 +99,14 @@ def plot_horizon_comparison(
         sharey=True
     )
 
-    for ax, h in zip(axes, horizons):
-        y_true     = y_true_dict[h]
-        y_pred     = y_pred_dict[h]
+    for ax, h in zip(axes, horizons): 
+        y_true = y_true_dict[h]
+        y_pred = y_pred_dict[h]
         y_baseline = y_baseline_dict[h]
 
-        ax.plot(y_true, label="Observed",  linewidth=1.0)
+        ax.plot(y_true, label="Observed", linewidth=1.0)
         ax.plot(y_pred, label="Predicted", linewidth=1.0, alpha=0.8)
-        ax.plot(y_baseline, label="Baseline",  linewidth=0.8, linestyle="--", alpha=0.6)
+        ax.plot(y_baseline, label="Baseline", linewidth=0.8, linestyle="--", alpha=0.6)
         ax.set_title(f"{h}h horizon")
         ax.set_xlabel("Hour index (validation period)")
         ax.legend(fontsize=8)

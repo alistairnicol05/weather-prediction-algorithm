@@ -24,13 +24,13 @@ MONTREAL = Location(
     timezone="America/Montreal",
 )
 
-def fetch_open_meteo_hourly(
+def fetch_open_meteo_hourly( # fetch hourly weather from API
     start_date: str,
     end_date: str,
     location: Location = MONTREAL,
     hourly_vars: List[str] | None = None,
 ) -> pd.DataFrame:
-    if hourly_vars is None:
+    if hourly_vars is None: #create list of variables to fetch if not provided by user
         hourly_vars = [
             "temperature_2m",
             "wind_speed_10m",
@@ -42,8 +42,8 @@ def fetch_open_meteo_hourly(
         ]
 
     url = "https://archive-api.open-meteo.com/v1/archive"
-    params = {
-        "latitude": location.lat,
+    params = { # set up parameters for API request
+        "latitude": location.lat, 
         "longitude": location.lon,
         "start_date": start_date,
         "end_date": end_date,
@@ -60,7 +60,7 @@ def fetch_open_meteo_hourly(
     if times is None:
         raise RuntimeError(f"Open-Meteo response missing 'hourly.time'. Keys: {payload.keys()}")
 
-    idx = pd.to_datetime(times)
+    idx = pd.to_datetime(times) 
     df = pd.DataFrame(index=idx)
     for k, v in hourly.items():
         if k == "time":
@@ -70,7 +70,7 @@ def fetch_open_meteo_hourly(
     return df
 
 # Preprocessing + features
-def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess(df: pd.DataFrame) -> pd.DataFrame: # preprocess raw data by sorting, removing duplicates, reindexing 
     df = df.sort_index()
     df = df[~df.index.duplicated(keep="first")]
 
@@ -80,8 +80,8 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.interpolate(limit=6)
     df = df.ffill().bfill()
 
-    rename = {
-        "temperature_2m": "T",
+    rename = { # abbrevations of variables
+        "temperature_2m": "T", 
         "wind_speed_10m": "W",
         "wind_direction_10m": "Wd",
         "relative_humidity_2m": "RH",
@@ -93,16 +93,16 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 
     # Diurnal + seasonal features
     hour = pd.DatetimeIndex(df.index).hour.to_numpy()
-    omega = 2 * math.pi / 24.0
+    omega = 2 * math.pi / 24
     # TODO: Student can add whatever you like to the dataset here. Example here
     df["sin_day"] = np.sin(omega * hour) # hour of day feature, captures diurnal cycle (period = 24h)
-    df["cos_day"] = np.cos(omega * hour) # same as above, but with cosine to allow model to capture phase shift (e.g. peak temp at 3pm, not noon)
+    df["cos_day"] = np.cos(omega * hour) # same as above, but with cosine to capture phase shift
 
     doy = pd.DatetimeIndex(df.index).dayofyear.to_numpy() 
     omega_y = 2 * math.pi / 365.25
     # TODO: Student can add whatever you like to the dataset here
-    df["sin_year"] = np.sin(omega_y * doy) # sine of day of year, captures seasonal cycle (period = 365.25 days)
-    df["cos_year"] = np.cos(omega_y * doy) # same as above, but with cosine to allow model to capture phase shift (e.g. peak temp in late July, not June 21)
+    df["sin_year"] = np.sin(omega_y * doy) # sine of day of year, captures seasonal cycle
+    df["cos_year"] = np.cos(omega_y * doy) # same as above, but with cosine to capture phase shift
 
     # df["dP"] = df["P"].diff() #explored but unused variables
     # df["dT"] = df["T"].diff() 
@@ -128,7 +128,7 @@ def split_train_val(data: pd.DataFrame, val_hours: int) -> Tuple[pd.DataFrame, p
         raise ValueError("Not enough samples for requested validation window.")
     return data.iloc[:-val_hours].copy(), data.iloc[-val_hours:].copy()
 
-def design_matrix(df: pd.DataFrame, horizon: int): #modify design matrix to add more variables
+def design_matrix(df: pd.DataFrame, horizon: int): #modify design matrix
 
     data = df.copy() #copy inital design matrix
 
@@ -195,8 +195,8 @@ def design_matrix(df: pd.DataFrame, horizon: int): #modify design matrix to add 
             "sin_day", "cos_day",
             "sin_year", "cos_year",
         ]
-    data["y_target"] = data["T"].shift(-horizon) # target variable is T at time t+horizon, so we shift T column up by 'horizon' steps to align with features at time t
-    data = data.dropna(subset=feature_cols + ["y_target"]) # drop rows with NaN in features or target (due to lagging and shifting)
+    data["y_target"] = data["T"].shift(-horizon) # shift T column up by 'horizon' steps to align with features at time t
+    data = data.dropna(subset=feature_cols + ["y_target"]) # drop rows with NaN in features or target 
 
     X = data[feature_cols].to_numpy() # convert feature columns to numpy array for model training
     y = data["y_target"].to_numpy() # convert target variable to numpy array
@@ -205,27 +205,27 @@ def design_matrix(df: pd.DataFrame, horizon: int): #modify design matrix to add 
 
     return X, y, feature_cols
 
-def fit_standardizer(X_std: np.ndarray): # compute mean and std of each column in the design matrix, to be used for standardization (feature scaling)
+def fit_standardizer(X_std: np.ndarray): # compute mean and std of each column in the design matrix
     
     mu = X_std.mean(axis=0) # compute mean of each column (feature) in the design matrix
-    sigma = X_std.std(axis=0, ddof=0) # compute std of each column (feature) in the design matrix, using population std (ddof=0)
+    sigma = X_std.std(axis=0, ddof=0) # compute std of each column in the design matrix
 
-    sigma[sigma==0] = 1 # to avoid division by zero in case of constant features (std=0), we set std to 1 for those features
+    sigma[sigma==0] = 1 # set std to 1 for constant features to avoid division by zero
 
     return mu, sigma
 
-def apply_standardizer(X: np.ndarray, mu: np.ndarray, sigma: np.ndarray): # apply standardization to the design matrix using the provided mean and std (from fit_standardizer)
+def apply_standardizer(X: np.ndarray, mu: np.ndarray, sigma: np.ndarray): # apply standardization to the design matrix
     X_scaled = (X - mu) / sigma # standardize each column (feature) by subtracting mean and dividing by std
-    X = np.hstack([np.ones((X_scaled.shape[0], 1)), X_scaled]) # add bias term (column of ones) to the standardized design matrix, so that the model can learn an intercept
+    X = np.hstack([np.ones((X_scaled.shape[0], 1)), X_scaled]) # add bias term to the standardized design matrix
     return X
 
-def model_training(X_train: np.ndarray, y_train: np.ndarray): # train linear regression model using ordinary least squares (OLS) closed-form solution
+def model_training(X_train: np.ndarray, y_train: np.ndarray): # train linear regression model 
 
     theta = np.linalg.lstsq(X_train, y_train, rcond=None)[0] 
 
     return theta
     
-def prediction(X: np.ndarray, theta: np.ndarray):  # make predictions using the learned model parameters (theta) and the design matrix (X)
+def prediction(X: np.ndarray, theta: np.ndarray):  # make predictions using the theta and the design matrix (X)
 
     return X @ theta
 
@@ -240,19 +240,20 @@ def metric_computation(y_pred: np.ndarray, y_true: np.ndarray): # compute RMSE a
 
     return RMSE, MAE
 
-def plot_forecast( # plot predicted vs observed temperature for a given forecast horizon, with baseline for comparison
+def plot_forecast( # plot predicted vs observed temperature for a given forecast horizon, with baseline 
     y_true: np.ndarray,
     y_pred: np.ndarray,
     y_baseline: np.ndarray,
     horizon: int,
 ):
-    W_DOUBLE = 7.10 # inches
-    GOLDEN   = (5**0.5 - 1) / 2 # ≈ 0.618
+    W_DOUBLE = 7.10 
+    GOLDEN   = (5**0.5 - 1) / 2 # 0.618
 
+#plots
     plt.figure(figsize=(W_DOUBLE, W_DOUBLE*GOLDEN))
-    plt.plot(y_true,     label="Observed",  linewidth=1.0)
-    plt.plot(y_pred,     label="Predicted", linewidth=1.0, alpha=0.8)
-    plt.plot(y_baseline, label="Baseline",  linewidth=0.8, linestyle="--", alpha=0.6)
+    plt.plot(y_true, label="Observed",  linewidth=1.0)
+    plt.plot(y_pred, label="Predicted", linewidth=1.0, alpha=0.8)
+    plt.plot(y_baseline, label="Baseline", linewidth=0.8, linestyle="--", alpha=0.6)
     plt.title(f"Temperature forecast — {horizon}h ahead (validation set)")
     plt.ylabel("T [°C]")
     plt.xlabel("Hour index (validation period)")
@@ -263,8 +264,8 @@ def plot_forecast( # plot predicted vs observed temperature for a given forecast
 
     
 if __name__ == "__main__":
-    start_date = "2025-06-01" # start of validation period
-    end_date = "2025-09-01" # end of validation period 
+    start_date = "2024-06-01" # start of validation period
+    end_date = "2025-06-01" # end of validation period 
     
     montreal = Location( 
         name="Montreal, QC",
@@ -273,13 +274,13 @@ if __name__ == "__main__":
         timezone="America/Montreal",
     )
 
-    print(f"Fetching Open-Meteo hourly data for {montreal.name}...") # fetch data for Montreal from Open-Meteo API for the specified date range
+    print(f"Fetching Open-Meteo hourly data for {montreal.name}...") # fetch data for Montreal from Open-Meteo API
     df_raw = fetch_open_meteo_hourly(start_date, end_date, location=montreal)
     print("Preprocessing...")
     df = preprocess(df_raw) # preprocess data 
 
     val_hours = int(len(df)*0.2) # use last 20% of data for validation, rest for training 
-    df_train, df_val = split_train_val(df, val_hours) # split data into training and validation sets based on the specified number of validation hours
+    df_train, df_val = split_train_val(df, val_hours) # split data into training and validation sets
 
 
     horizons = [1, 3, 6, 12, 24, 48] 
@@ -290,15 +291,15 @@ if __name__ == "__main__":
                           _show_fig, plot_horizon_comparison) # import analysis functions for plotting results and metrics
 
     feature_cols_dict = {}
-    y_true_dict      = {}
-    y_pred_dict      = {}
+    y_true_dict = {}
+    y_pred_dict = {}
     theta_values = {}
     y_baseline_dict = {} 
 
     for horizon in horizons: 
 
-        X_train_raw, y_train_raw, _ = design_matrix(df_train, horizon) # create design matrix for training set based on the specified forecast horizon
-        X_val_raw, y_val_raw, feature_cols = design_matrix(df_val, horizon) # create design matrix for validation set based on the specified forecast horizon
+        X_train_raw, y_train_raw, _ = design_matrix(df_train, horizon) # create design matrix for training set
+        X_val_raw, y_val_raw, feature_cols = design_matrix(df_val, horizon) # create design matrix for validation set 
 
         print("Condition number before standardizing", np.linalg.cond(X_train_raw))
 
@@ -336,7 +337,7 @@ if __name__ == "__main__":
         theta_values[horizon] = theta
         y_baseline_dict[horizon] = y_baseline
 
-    for horizon in horizons: # print learned model parameters (theta coefficients) for each horizon, along with the corresponding feature names
+    for horizon in horizons: # print model parameters for each horizon, along with the corresponding feature names
         print(f"\nHorizon {horizon}h — theta coefficients:")
         for name, coef in zip(["bias"] + feature_cols_dict[horizon], theta_values[horizon]):
             print(f"  {name:<20} {coef:.4f}")
@@ -346,6 +347,7 @@ if __name__ == "__main__":
 
     plot_metrics_vs_horizon(results)  # plot RMSE and MAE vs forecast horizon 
     plot_residuals(y_true_dict, y_pred_dict) # plot residuals and predicted vs observed for each horizon 
-    plot_horizon_comparison(y_true_dict, y_pred_dict, y_baseline_dict, start_date, end_date) # plot predicted vs observed for all horizons 
+
+    plot_horizon_comparison(y_true_dict, y_pred_dict, y_baseline_dict, start_date, end_date) 
 
  
