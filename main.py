@@ -312,6 +312,8 @@ if __name__ == "__main__":
     feature_cols_dict = {}
     y_true_dict      = {}
     y_pred_dict      = {}
+    theta_values = {}
+
 
     for horizon in horizons:
 
@@ -328,6 +330,7 @@ if __name__ == "__main__":
         print("Condition number after standardizing", np.linalg.cond(X_train))
 
         theta = model_training(X_train, y_train_raw)
+        theta_values[horizon] = theta
         y_pred = prediction(X_val, theta)
         y_baseline = baseline(X_val_raw)
 
@@ -349,6 +352,12 @@ if __name__ == "__main__":
         feature_cols_dict[horizon] = feature_cols  # return from design_matrix
         y_true_dict[horizon]       = y_val_raw
         y_pred_dict[horizon]       = y_pred
+        theta_values[horizon]      = theta
+    for horizon in horizons:
+        print(f"\nHorizon {horizon}h — theta coefficients:")
+        for name, coef in zip(["bias"] + feature_cols_dict[horizon], theta_values[horizon]):
+            print(f"  {name:<20} {coef:.4f}")
+        
 
     metric_results = pd.DataFrame(results)
 
