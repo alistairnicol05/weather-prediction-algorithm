@@ -337,7 +337,7 @@ if __name__ == "__main__":
         rmse_model, mae_model = metric_computation(y_pred, y_val_raw)
         rmse_baseline, mae_baseline = metric_computation(y_pred, y_baseline)
 
-        print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}, baseline RMSE={rmse_baseline:.2f}") # , baseline RMSE={rmse_baseline:.2f}"
+        print(f"{horizon}h: model RMSE={rmse_model:.2f}, MAE={mae_model:.2f}, baseline RMSE={rmse_baseline:.2f}",) # , baseline RMSE={rmse_baseline:.2f}"
 
         plot_forecast(y_val_raw, y_pred, y_baseline, horizon) # y_baseline
 
@@ -364,4 +364,3 @@ if __name__ == "__main__":
     plot_metrics_vs_horizon(results)
     plot_residuals(y_true_dict, y_pred_dict)
     # metric_results.to_excel("Model.xlsx", index = False) 
-
