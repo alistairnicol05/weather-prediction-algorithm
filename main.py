@@ -145,29 +145,29 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     if horizon <= 3:
         feature_cols = [
-            "T_lag1", "T_lag3",
-            "P_lag1", "P_lag3",
-            "W_lag1", "W_lag3",
+            "T", "T_lag1", "T_lag3",
+            "P", "P_lag1", "P_lag3",
+            "W", "W_lag1", "W_lag3",
             "Wd_lag48",
-            "Prec_lag1", "Prec_lag3",
+            "Prec", "Prec_lag1", "Prec_lag3",
             "sin_day", "cos_day",
         ]
 
     elif horizon <= 6:
         feature_cols = [
-            "T_lag1", "T_lag3", "T_lag6",
-            "P_lag1", "P_lag3", "P_lag6",
-            "W_lag1", "W_lag3", "W_lag6",
+            "T", "T_lag1", "T_lag3", "T_lag6",
+            "P", "P_lag1", "P_lag3", "P_lag6",
+            "W", "W_lag1", "W_lag3", "W_lag6",
             "Wd_lag48", "Wd_lag24",
-            "Prec_lag1", "Prec_lag3", "Prec_lag6",
+            "Prec", "Prec_lag1", "Prec_lag3", "Prec_lag6",
             "sin_day", "cos_day",
             "sin_year", "cos_year",
         ]
 
     elif horizon <= 12:
         feature_cols = [
-            "T_lag1", "T_lag6", "T_lag12",
-            "P_lag1", "P_lag3", "P_lag6", "P_lag12",
+            "T", "T_lag1", "T_lag6", "T_lag12",
+            "P", "P_lag1", "P_lag3", "P_lag6", "P_lag12",
             "Wd_lag48", "Wd_lag24", "Wd_lag12",
             "RH_lag48", "RH_lag24", "RH_lag12",
             "sin_day", "cos_day",
@@ -176,8 +176,8 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     elif horizon <= 24:
         feature_cols = [
-            "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24",
-            "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
+            "T", "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24",
+            "P", "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24",
             "Wd_lag48", "Wd_lag24", "Wd_lag12", "Wd_lag6",
             "RH_lag48", "RH_lag24", "RH_lag12", "RH_lag6",
             "sin_day", "cos_day",
@@ -186,8 +186,8 @@ def design_matrix(df: pd.DataFrame, horizon: int):
 
     else:
         feature_cols = [
-            "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
-            "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
+            "T", "T_lag1", "T_lag3", "T_lag6", "T_lag12", "T_lag24", "T_lag48",
+            "P", "P_lag1", "P_lag3", "P_lag6", "P_lag12", "P_lag24", "P_lag48",
             "Wd_lag48", "Wd_lag24", "Wd_lag12", "Wd_lag6", "Wd_lag3",
             "RH_lag48", "RH_lag24", "RH_lag12", "RH_lag6", "RH_lag3",
             "sin_day", "cos_day",
