@@ -292,28 +292,15 @@ if __name__ == "__main__":
     horizons = [1, 3, 6, 12, 24, 48]
     results = []
 
-    # print("--- Alpha tuning ---")
-    """
-    for horizon in horizons:
-        X_train_raw, y_train_raw, _ = design_matrix(df_train, horizon)
-        X_val_raw, y_val_raw, feature_cols     = design_matrix(df_val, horizon)
-        mu, sigma   = fit_standardizer(X_train_raw)
-        X_train     = apply_standardizer(X_train_raw, mu, sigma)
-        X_val       = apply_standardizer(X_val_raw, mu, sigma)
-        
-        for alpha in [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]:
-            theta  = model_training_ridge(X_train, y_train_raw, alpha=alpha)
-            y_pred = prediction(X_val, theta)
-            rmse, _ = metric_computation(y_pred, y_val_raw)
-            print(f"  horizon={horizon}h  alpha={alpha}: RMSE={rmse:.2f}")
-        """
-    from analysis import plot_metrics_vs_horizon, plot_residuals
+   
+    from analysis import (plot_metrics_vs_horizon, plot_residuals, 
+                          _show_fig, plot_horizon_comparison)
 
     feature_cols_dict = {}
     y_true_dict      = {}
     y_pred_dict      = {}
     theta_values = {}
-
+    y_baseline_dict = {} 
 
     for horizon in horizons:
 
@@ -345,14 +332,17 @@ if __name__ == "__main__":
         "Model": "Model 1",
         "Date Range": f"{start_date} to {end_date}",
         "Horizon (h)": horizon,
-        "RMSE": rmse_model,
-        "MAE": mae_model,
+        "RMSE": rmse_model, # use rmse_baseline for baseline analysis
+        "MAE": mae_model, # use mae_baseline for baseline analysis
+        
         })
 
         feature_cols_dict[horizon] = feature_cols  # return from design_matrix
-        y_true_dict[horizon]       = y_val_raw
-        y_pred_dict[horizon]       = y_pred
-        theta_values[horizon]      = theta
+        y_true_dict[horizon] = y_val_raw
+        y_pred_dict[horizon] = y_pred
+        theta_values[horizon] = theta
+        y_baseline_dict[horizon] = y_baseline
+
     for horizon in horizons:
         print(f"\nHorizon {horizon}h — theta coefficients:")
         for name, coef in zip(["bias"] + feature_cols_dict[horizon], theta_values[horizon]):
@@ -363,5 +353,6 @@ if __name__ == "__main__":
 
     plot_metrics_vs_horizon(results)
     plot_residuals(y_true_dict, y_pred_dict)
-    # metric_results.to_excel("Model.xlsx", index = False) 
+    plot_horizon_comparison(y_true_dict, y_pred_dict, y_baseline_dict, start_date, end_date)
 
+ 
