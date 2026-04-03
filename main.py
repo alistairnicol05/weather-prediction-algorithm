@@ -201,8 +201,6 @@ def design_matrix(df: pd.DataFrame, horizon: int): #modify design matrix
     X = data[feature_cols].to_numpy() # convert feature columns to numpy array for model training
     y = data["y_target"].to_numpy() # convert target variable to numpy array
 
-  #  X = np.hstack([np.ones((X.shape[0], 1)), X])
-
     return X, y, feature_cols
 
 def fit_standardizer(X_std: np.ndarray): # compute mean and std of each column in the design matrix

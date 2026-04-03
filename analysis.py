@@ -32,7 +32,7 @@ def plot_metrics_vs_horizon(results, out_dir="figures/analysis"): # plot RMSE an
 
     for ax, label, vals in zip(axes, ["RMSE", "MAE"], [rmses, maes]): # plot RMSE and MAE vs horizon in separate subplots, with markers and annotations for each point
         ax.plot(horizons, vals, marker="o")
-        for h, v in zip(horizons, vals):
+        for h, v in zip(horizons, vals): # annotate each point with its value for clarity
             ax.annotate(f"{v:.2f}", (h, v), textcoords="offset points",
                         xytext=(0, 6), ha="center", fontsize=8)
         ax.set_xlabel("Forecast horizon (h)")
