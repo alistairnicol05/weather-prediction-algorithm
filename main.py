@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import math
 from dataclasses import dataclass
 from typing import List, Tuple
@@ -328,7 +326,6 @@ if __name__ == "__main__":
         X_val = apply_standardizer(X_val_raw, mu, sigma)
 
         print("Condition number after standardizing", np.linalg.cond(X_train))
-        print("Validation condition number after standardizing", np.linalg.cond(X_val))
 
         theta = model_training(X_train, y_train_raw)
         y_pred = prediction(X_val, theta)
